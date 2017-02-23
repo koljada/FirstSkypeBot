@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 using System.Web.Http;
 using Microsoft.Bot.Connector;
 using System.Collections.Generic;
-
+//7895d748-6edb-4c64-aa08-4a8087d4fe6a
+//ZiLGTK04BSjkMFtm1Dnxd5L
 namespace FirstSkypeBot
 {
     interface ITimeStorage
