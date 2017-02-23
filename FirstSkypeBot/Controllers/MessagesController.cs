@@ -38,103 +38,107 @@ namespace FirstSkypeBot
             get { return _breakStart; }
             set { _breakStart = value; }
         }
-        List<TimeSpan> ITimeStorage.Breaks => _breaks;
-    }
-
-    [BotAuthentication]
-    public class MessagesController : ApiController
-    {
-        private readonly ITimeStorage _storage;
-        public MessagesController()
+        List<TimeSpan> ITimeStorage.Breaks
         {
-            _storage = new Storage();
+            get { return _breaks; }
         }
 
-        /// <summary>
-        /// POST: api/Messages
-        /// Receive a message from a user and reply to it
-        /// </summary>
-        public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
+        [BotAuthentication]
+        public class MessagesController : ApiController
         {
-            if (activity.Type == ActivityTypes.Message)
+            private readonly ITimeStorage _storage;
+            public MessagesController()
             {
-                ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
-                // calculate something for us to return
-                string text = activity.Text.ToLower();
-                string replyText = "";
+                _storage = new Storage();
+            }
 
-                if (text == "start" || text == "s")
+            /// <summary>
+            /// POST: api/Messages
+            /// Receive a message from a user and reply to it
+            /// </summary>
+            public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
+            {
+                if (activity.Type == ActivityTypes.Message)
                 {
-                    _storage.Start = DateTime.Now;
-                    replyText = "Start time was set to " + DateTime.Now.ToShortTimeString();
-                }
-                else if (text == "break start" || text == "bs")
-                {
-                    _storage.BreakStart = DateTime.Now;
-                    replyText = "Break start time was set to " + DateTime.Now.ToShortTimeString();
+                    ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
+                    // calculate something for us to return
+                    string text = activity.Text.ToLower();
+                    string replyText = "";
 
-                }
-                else if ((text == "break end" || text == "be") && _storage.BreakStart.HasValue)
-                {
-                    _storage.Breaks.Add(DateTime.Now - _storage.BreakStart.Value);
-                    replyText = "Break end time was set to " + DateTime.Now.ToShortTimeString();
-
-                }
-                else if (text == "end" || text == "e")
-                {
-                    _storage.End = DateTime.Now;
-                    if (_storage.Start.HasValue)
+                    if (text == "start" || text == "s")
                     {
-                        var duration = (DateTime.Now - _storage.Start.Value);
-                        foreach (var breakTime in _storage.Breaks)
-                        {
-                            duration -= breakTime;
-                        }
-                        replyText = $@"Start: {_storage.Start.Value.ToShortTimeString()}
-                                       Break: {_storage.Breaks.Select(x => x.TotalMinutes).Sum().ToString("N0")}m
-                                       End: {DateTime.Now.ToShortTimeString()}
-                                       Duration: {duration.TotalHours.ToString("N2")}h";
+                        _storage.Start = DateTime.Now;
+                        replyText = "Start time was set to " + DateTime.Now.ToShortTimeString();
                     }
+                    else if (text == "break start" || text == "bs")
+                    {
+                        _storage.BreakStart = DateTime.Now;
+                        replyText = "Break start time was set to " + DateTime.Now.ToShortTimeString();
+
+                    }
+                    else if ((text == "break end" || text == "be") && _storage.BreakStart.HasValue)
+                    {
+                        _storage.Breaks.Add(DateTime.Now - _storage.BreakStart.Value);
+                        replyText = "Break end time was set to " + DateTime.Now.ToShortTimeString();
+
+                    }
+                    else if (text == "end" || text == "e")
+                    {
+                        _storage.End = DateTime.Now;
+                        if (_storage.Start.HasValue)
+                        {
+                            var duration = (DateTime.Now - _storage.Start.Value);
+                            foreach (var breakTime in _storage.Breaks)
+                            {
+                                duration -= breakTime;
+                            }
+                            replyText = string.Format("Start: {0} Break: {1}m End: {2} Duration: {3}h",
+                                _storage.Start.Value.ToShortTimeString(),
+                                _storage.Breaks.Select(x => x.TotalMinutes).Sum().ToString("N0"),
+                                DateTime.Now.ToShortTimeString(),
+                                duration.TotalHours.ToString("N2"));
+                        }
+                    }
+                    // return our reply to the user
+                    Activity reply = activity.CreateReply(replyText);
+                    await connector.Conversations.ReplyToActivityAsync(reply);
                 }
-                // return our reply to the user
-                Activity reply = activity.CreateReply(replyText);
-                await connector.Conversations.ReplyToActivityAsync(reply);
-            }
-            else
-            {
-                HandleSystemMessage(activity);
-            }
-            var response = Request.CreateResponse(HttpStatusCode.OK);
-            return response;
-        }
-
-        private Activity HandleSystemMessage(Activity message)
-        {
-            if (message.Type == ActivityTypes.DeleteUserData)
-            {
-                // Implement user deletion here
-                // If we handle user deletion, return a real message
-            }
-            else if (message.Type == ActivityTypes.ConversationUpdate)
-            {
-                // Handle conversation state changes, like members being added and removed
-                // Use Activity.MembersAdded and Activity.MembersRemoved and Activity.Action for info
-                // Not available in all channels
-            }
-            else if (message.Type == ActivityTypes.ContactRelationUpdate)
-            {
-                // Handle add/remove from contact lists
-                // Activity.From + Activity.Action represent what happened
-            }
-            else if (message.Type == ActivityTypes.Typing)
-            {
-                // Handle knowing tha the user is typing
-            }
-            else if (message.Type == ActivityTypes.Ping)
-            {
+                else
+                {
+                    HandleSystemMessage(activity);
+                }
+                var response = Request.CreateResponse(HttpStatusCode.OK);
+                return response;
             }
 
-            return null;
+            private Activity HandleSystemMessage(Activity message)
+            {
+                if (message.Type == ActivityTypes.DeleteUserData)
+                {
+                    // Implement user deletion here
+                    // If we handle user deletion, return a real message
+                }
+                else if (message.Type == ActivityTypes.ConversationUpdate)
+                {
+                    // Handle conversation state changes, like members being added and removed
+                    // Use Activity.MembersAdded and Activity.MembersRemoved and Activity.Action for info
+                    // Not available in all channels
+                }
+                else if (message.Type == ActivityTypes.ContactRelationUpdate)
+                {
+                    // Handle add/remove from contact lists
+                    // Activity.From + Activity.Action represent what happened
+                }
+                else if (message.Type == ActivityTypes.Typing)
+                {
+                    // Handle knowing tha the user is typing
+                }
+                else if (message.Type == ActivityTypes.Ping)
+                {
+                }
+
+                return null;
+            }
         }
     }
 }
