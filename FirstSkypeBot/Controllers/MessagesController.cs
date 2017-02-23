@@ -25,18 +25,18 @@ namespace FirstSkypeBot
 
         public DateTime? End
         {
-            get => _end;
-            set => _end = value;
+            get { return _end; }
+            set { _end = value; }
         }
         DateTime? ITimeStorage.Start
         {
-            get => _start;
-            set => _start = value;
+            get { return _start; }
+            set { _start = value; }
         }
         DateTime? ITimeStorage.BreakStart
         {
-            get => _breakStart;
-            set => _breakStart = value;
+            get { return _breakStart; }
+            set { _breakStart = value; }
         }
         List<TimeSpan> ITimeStorage.Breaks => _breaks;
     }
